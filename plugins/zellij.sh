@@ -1,22 +1,31 @@
 #!/bin/bash
 
-sync_zellij() {
-    local mode=$1 # 1=Dark, 2=Light
-    local config_file="$HOME/.config/zellij/config.kdl"
+BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$BASE_DIR/../core/utils.sh"
 
-    # Pull theme names from config
-    if [ "$mode" -eq 1 ]; then
-        local target_theme="$ZELLIJ_DARK_THEME"
-    else
-        local target_theme="$ZELLIJ_LIGHT_THEME"
-    fi
+MODE="$1"
+CONFIG_FILE="$HOME/.config/zellij/config.kdl"
 
-    # Check if config exists
-    if [ ! -f "$config_file" ]; then
-        echo "Error: Zellij config not found at $config_file"
-        return 1
-    fi
+load_config
 
-    # Replace theme config line
-    sed -i "s/^theme \".*\"/theme \"$target_theme\"/" "$config_file"
-}
+# Select theme based on mode
+case "$MODE" in
+    dark)  TARGET_THEME="$ZELLIJ_DARK_THEME"  ;;
+    light) TARGET_THEME="$ZELLIJ_LIGHT_THEME" ;;
+    *)
+        log "Error: unknown mode '$MODE'"
+        exit 1
+        ;;
+esac
+
+if [[ ! -f "$CONFIG_FILE" ]]; then
+    log "Error: Zellij config not found at $CONFIG_FILE"
+    exit 1
+fi
+
+# Replace existing theme line, or append it if absent
+if grep -q '^theme ' "$CONFIG_FILE"; then
+    sed -i "s|^theme \".*\"|theme \"$TARGET_THEME\"|" "$CONFIG_FILE"
+else
+    echo "theme \"$TARGET_THEME\"" >> "$CONFIG_FILE"
+fi
