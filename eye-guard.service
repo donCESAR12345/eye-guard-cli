@@ -1,0 +1,11 @@
+[Unit]
+Description=Eye-Guard CLI Theme Synchronizer
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/eye-guard-listener.sh
+Restart=on-failure
+
+[Install]
+WantedBy=graphical-session.target

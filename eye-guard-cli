@@ -1,0 +1,77 @@
+#!/bin/bash
+
+BASE_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+
+source "$BASE_DIR/core/utils.sh"
+
+# ─── Usage ────────────────────────────────────────────────────────────────────
+
+usage() {
+    cat <<EOF
+Usage: eye-guard-cli <command> [args]
+
+Commands:
+  set dark     Switch all plugins to dark mode
+  set light    Switch all plugins to light mode
+  status       Print the current mode
+  help         Show this help message
+EOF
+}
+
+# ─── Commands ─────────────────────────────────────────────────────────────────
+
+cmd_set() {
+    local mode="$1"
+
+    if [[ "$mode" != "dark" && "$mode" != "light" ]]; then
+        echo "Error: unknown mode '$mode'. Expected 'dark' or 'light'." >&2
+        usage >&2
+        exit 1
+    fi
+
+    load_config
+    update_state "$mode"
+    log "Switching to $mode mode"
+
+    for plugin in "$BASE_DIR/plugins/"*.sh; do
+        [[ "$(basename "$plugin")" == *.install.sh ]] && continue
+        plugin_name="$(basename "$plugin" .sh)"
+        bash "$plugin" "$mode" \
+            && log "Plugin '$plugin_name' applied successfully" \
+            || log "Plugin '$plugin_name' failed with exit code $?"  &
+    done
+
+    wait
+}
+
+cmd_status() {
+    local mode
+    mode="$(get_state)"
+    echo "Current mode: $mode"
+}
+
+# ─── Dispatch ─────────────────────────────────────────────────────────────────
+
+COMMAND="${1:-}"
+
+case "$COMMAND" in
+    set)
+        cmd_set "${2:-}"
+        ;;
+    status)
+        cmd_status
+        ;;
+    help|--help|-h)
+        usage
+        ;;
+    "")
+        echo "Error: no command given." >&2
+        usage >&2
+        exit 1
+        ;;
+    *)
+        echo "Error: unknown command '$COMMAND'." >&2
+        usage >&2
+        exit 1
+        ;;
+esac
