@@ -24,6 +24,9 @@ Eye Guard CLI listens for system-level colour scheme changes (via D-Bus) and ins
 | [foot](https://codeberg.org/dnkl/foot) | `foot` on `$PATH` | `[colors]` block | `[colors2]` block |
 | [Neovim](https://neovim.io) | `nvim` on `$PATH` | `habamax` | `morning` |
 | [Zellij](https://zellij.dev) | `zellij` on `$PATH` | `gruvbox-dark` | `gruvbox-light` |
+| [Alacritty](https://alacritty.org) | `alacritty` on `$PATH` | `gruvbox_dark` | `gruvbox_light` |
+| [kitty](https://sw.kovidgoyal.net/kitty) | `kitty` on `$PATH` | `Gruvbox Dark` | `Gruvbox Light` |
+| [Ghostty](https://ghostty.org/) | `ghostty` on `$PATH` | `Gruvbox Dark` | `Gruvbox Light` |
 
 ---
 
@@ -102,6 +105,31 @@ foot uses POSIX signals rather than theme name variables. Define your two palett
 
 Eye Guard CLI sends `SIGUSR1` for dark mode (reloads `[colors]`) and `SIGUSR2` for light mode (switches to `[colors2]`).
 
+### Ghostty
+
+Ghostty handles dark/light switching natively via its `theme` config key:
+
+​```
+theme = light:"Gruvbox Light",dark:"Gruvbox Dark"
+​```
+
+The installer writes this line during setup. The runtime plugin only sends a
+reload signal — Ghostty itself decides which theme to apply based on the
+current system appearance.
+
+### Alacritty
+
+Alacritty hot-reloads its config automatically. The plugin manages a dedicated
+`~/.config/alacritty/current-theme.toml` file and swaps the import on each
+switch. Your main `alacritty.toml` must include it:
+
+​```toml
+[general]
+import = ["~/.config/alacritty/current-theme.toml"]
+​```
+
+The installer adds this line automatically if it is not already present.
+
 ---
 
 ## Usage
@@ -113,6 +141,7 @@ Commands:
   set dark     Switch all plugins to dark mode
   set light    Switch all plugins to light mode
   status       Print the current mode
+  reload       Re-apply the current mode to all plugins
   help         Show this help message
 ```
 
