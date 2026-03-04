@@ -14,7 +14,7 @@ SERVICE_DEST="$SERVICE_DIR/eye-guard.service"
 DEFAULT_CONFIG_PATH="$HOME/.config/eye-guard-cli/config.env"
 
 # All plugins the system knows about, in order
-ALL_PLUGINS=(bat foot nvim zellij)
+ALL_PLUGINS=(alacritty bat foot ghostty kitty nvim zellij)
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -111,9 +111,9 @@ plugin_is_configured() {
     [[ -f "$DEFAULT_CONFIG_PATH" ]] || return 1
 
     if [[ "$plugin" == "foot" ]]; then
-        grep -q "^# foot:" "$DEFAULT_CONFIG_PATH"
+        grep -q "^FOOT_ENABLED=" "$DEFAULT_CONFIG_PATH"
     else
-        grep -qi "^${plugin}_" "$DEFAULT_CONFIG_PATH"
+        grep -qi "^${plugin^^}_DARK_THEME=" "$DEFAULT_CONFIG_PATH"
     fi
 }
 
@@ -266,7 +266,6 @@ cmd_install() {
     show_header
     detect_plugins
     select_plugins
-    ask_interactive
     run_plugin_installers
     preview_and_write_config
     install_system_files

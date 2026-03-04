@@ -14,8 +14,47 @@ Commands:
   set dark     Switch all plugins to dark mode
   set light    Switch all plugins to light mode
   status       Print the current mode
+  reload       Re-apply the current mode to all plugins
   help         Show this help message
 EOF
+}
+
+# ─── Helpers ──────────────────────────────────────────────────────────────────
+
+# Usage: plugin_is_enabled <plugin_name>
+# Returns 0 if the plugin has been configured, 1 otherwise.
+plugin_is_enabled() {
+    local plugin="$1"
+
+    if [[ "$plugin" == "foot" ]]; then
+        [[ "${FOOT_ENABLED}" == "true" ]]
+        return
+    fi
+
+    # For all other plugins, check if the dark theme var is set
+    local prefix="${plugin^^}_DARK_THEME"
+    [[ -n "${!prefix}" ]]
+}
+
+run_plugins() {
+    local mode="$1"
+
+    for plugin in "$BASE_DIR/plugins/"*.sh; do
+        [[ "$(basename "$plugin")" == *.install.sh ]] && continue
+        local plugin_name
+        plugin_name="$(basename "$plugin" .sh)"
+
+        if ! plugin_is_enabled "$plugin_name"; then
+            continue
+        fi
+
+        local plugin_name="$(basename "$plugin" .sh)"
+        bash "$plugin" "$mode" \
+            && log "Plugin '$plugin_name' applied successfully" \
+            || log "Plugin '$plugin_name' failed with exit code $?" &
+    done
+
+    wait
 }
 
 # ─── Commands ─────────────────────────────────────────────────────────────────
@@ -32,16 +71,21 @@ cmd_set() {
     load_config
     update_state "$mode"
     log "Switching to $mode mode"
+    run_plugins "$mode"
+}
 
-    for plugin in "$BASE_DIR/plugins/"*.sh; do
-        [[ "$(basename "$plugin")" == *.install.sh ]] && continue
-        plugin_name="$(basename "$plugin" .sh)"
-        bash "$plugin" "$mode" \
-            && log "Plugin '$plugin_name' applied successfully" \
-            || log "Plugin '$plugin_name' failed with exit code $?"  &
-    done
+cmd_reload() {
+    load_config
+    local mode
+    mode="$(get_state)"
 
-    wait
+    if [[ "$mode" == "unknown" ]]; then
+        echo "Error: no mode has been set yet. Run 'eye-guard-cli set dark|light' first." >&2
+        exit 1
+    fi
+
+    log "Reloading $mode mode"
+    run_plugins "$mode"
 }
 
 cmd_status() {
@@ -57,6 +101,9 @@ COMMAND="${1:-}"
 case "$COMMAND" in
     set)
         cmd_set "${2:-}"
+        ;;
+    reload)
+        cmd_reload
         ;;
     status)
         cmd_status
